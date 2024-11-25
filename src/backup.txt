@@ -1,0 +1,52 @@
+import React from 'react';
+import moment from 'moment';  // Import moment.js
+import { Label } from 'semantic-ui-react';  // Add this import statement
+
+
+const Comment = ({ author, time, text, labels }) => {
+  // Use moment.js to parse and format the time string
+  const formattedTime = moment(time, "DD/MM/YYYY, hh:mm:ss a").format("DD/MM/YYYY, hh:mm A");
+
+  return (
+    <div>
+      <div style={{ marginBottom: '8px' }}>
+        <strong>{author}</strong>
+        <span style={{ color: 'gray', fontSize: '0.9em', marginLeft: '10px' }}>
+          {formattedTime}
+        </span>
+      </div>
+      <p>{text}</p>
+
+      <div>
+        {labels &&
+          labels.map((label, index) => (
+            <Label key={index} color={label.color}>
+              {label}
+            </Label>
+          ))}
+      </div>
+    </div>
+  );
+};
+
+export default Comment;
+
+
+ <div>
+      <div style={{ marginBottom: '8px' }}>
+        <strong>{author}</strong>
+        <span style={{ color: 'gray', fontSize: '0.9em', marginLeft: '10px' }}>
+          {formattedTime}
+        </span>
+      </div>
+      <p>{text}</p>
+
+      <div>
+        {labels &&
+          labels.map((label, index) => (
+            <Label key={index} color={label.color}>
+              {label}
+            </Label>
+          ))}
+      </div>
+    </div>
