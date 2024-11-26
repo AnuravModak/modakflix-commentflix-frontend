@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Loader, Message, Header, Button } from 'semantic-ui-react';
-import CommentComponent from './CommentComponent';
-import AddComment from './AddComment';
-import { fetchCommentByPostId } from '../Services/api';
+import React, { useState, useEffect } from "react";
+import { Loader, Message, Header, Button } from "semantic-ui-react";
+import CommentComponent from "./CommentComponent";
+import AddComment from "./AddComment";
+import moment from "moment";
+import { fetchCommentByPostId } from "../Services/api";
 
 const CommentSection = ({ postId }) => {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [visibleCount, setVisibleCount] = useState(7); // Tracks how many comments to show
+  const [visibleCount, setVisibleCount] = useState(7);
 
-  // Fetch comments from the API
   const fetchComments = async () => {
     try {
       setLoading(true);
@@ -18,14 +18,14 @@ const CommentSection = ({ postId }) => {
 
       const response = await fetchCommentByPostId(postId);
 
-      if (response.status !== 200 && response.status!==201) { // Check for successful status
+      if (response.status !== 200 && response.status !== 201) {
         throw new Error(`Error: ${response.statusText}`);
       }
-      
-      let data = response.data; // Use response.data instead of response.json()
 
-      // Sort comments by createdAt in descending order
-      data = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const data = response.data.map((comment) => ({
+        ...comment,
+        formattedTime: moment(comment.createdAt).format("DD MMM YYYY, hh:mm A"), // Pre-format time
+      }));
 
       setComments(data);
     } catch (err) {
@@ -35,7 +35,6 @@ const CommentSection = ({ postId }) => {
     }
   };
 
-  // Fetch comments when the component mounts or postId changes
   useEffect(() => {
     fetchComments();
   }, [postId]);
@@ -45,12 +44,18 @@ const CommentSection = ({ postId }) => {
   };
 
   const handleLoadMore = () => {
-    setVisibleCount((prevCount) => prevCount + 7); // Increase visible count by 7
+    setVisibleCount((prevCount) => prevCount + 7);
   };
 
   const handleGoBackToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll smoothly to the top of the page
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // Determine the latest comment time or use the current time
+  const latestTime =
+    comments.length > 0
+      ? comments[0].formattedTime // The most recent comment is the first in the sorted list
+      : moment().format("DD MMM YYYY, hh:mm A");
 
   return (
     <div>
@@ -67,13 +72,10 @@ const CommentSection = ({ postId }) => {
       )}
 
       {!loading && !error && (
-        <AddComment postId={postId} onCommentPosted={handleCommentPosted} />
-      )}
-
-      {!loading && !error && comments.length === 0 && (
-        <Header as="h4" dividing>
-          No Comments Yet...
-        </Header>
+        <AddComment
+          postId={postId}
+          onCommentPosted={handleCommentPosted}
+        />
       )}
 
       {!loading && !error && comments.length > 0 && (
@@ -83,10 +85,11 @@ const CommentSection = ({ postId }) => {
           </Header>
           {comments.slice(0, visibleCount).map((comment) => (
             <CommentComponent
+              key={comment.id}
               id={comment.id}
               postId={postId}
               author={comment.userId}
-              time={new Date(comment.createdAt)}
+              createdtime={latestTime} // Pass preformatted time
               text={comment.content}
               replies={comment.replies}
             />
@@ -96,7 +99,7 @@ const CommentSection = ({ postId }) => {
             <Button
               onClick={handleLoadMore}
               primary
-              style={{ marginTop: '20px', marginRight: '10px' }}
+              style={{ marginTop: "20px", marginRight: "10px" }}
             >
               Load More
             </Button>
@@ -106,7 +109,7 @@ const CommentSection = ({ postId }) => {
             <Button
               onClick={handleGoBackToTop}
               secondary
-              style={{ marginTop: '20px' }}
+              style={{ marginTop: "20px" }}
             >
               Go Back to Top
             </Button>

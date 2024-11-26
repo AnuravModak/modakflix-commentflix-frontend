@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect,useMemo } from "react";
 import {
   TextArea,
   Comment,
@@ -15,14 +15,15 @@ import {
 import moment from "moment";
 import { fetchRepliesByCommentId, addReply } from "../Services/api";
 
-const ReplyComponent = ({ id, userId, postId, time, content, commentId,onReplyPosted }) => {
+const ReplyComponent = ({ id, userId, postId, createdtime, content, commentId,onReplyPosted }) => {
   const [isReplyVisible, setIsReplyVisible] = useState(false);
   const [replies, setReplies] = useState([]);
   const [replyText, setReplyText] = useState("");
   const [error, setError] = useState(null);
   const textareaRef = useRef(null);
 
-  const formattedTime = moment(time).format("DD/MM/YYYY, hh:mm A");
+  // Memoize formattedTime to prevent unnecessary recalculations
+  // const formattedTime = useMemo(() => moment(createdtime).format("DD/MM/YYYY, hh:mm A"), [createdtime]);
 
   const toggleReplyVisibility = () => {
     setIsReplyVisible(!isReplyVisible);
@@ -41,10 +42,8 @@ const ReplyComponent = ({ id, userId, postId, time, content, commentId,onReplyPo
       }
 
       let data = response.data;
-
-      // Sort replies by createdAt in descending order
-      data = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setReplies(data);
+      
     } catch (err) {
       console.error(err.message);
     }
@@ -86,7 +85,7 @@ const ReplyComponent = ({ id, userId, postId, time, content, commentId,onReplyPo
         <CommentContent>
           <CommentAuthor as="a">{userId}</CommentAuthor>
           <CommentMetadata>
-            <div>{formattedTime}</div>
+            <div>{createdtime}</div>
           </CommentMetadata>
           <Comment.Text>{content}</Comment.Text>
           <CommentActions>

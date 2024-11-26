@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import moment from 'moment'; // Import moment.js for date formatting
+import React, { useState, useEffect, useMemo } from "react";
+import moment from "moment";
 import {
   Comment,
   CommentText,
@@ -8,44 +8,41 @@ import {
   CommentContent,
   CommentAvatar,
   CommentActions,
-  Button, // Import Button from Semantic UI
+  Button,
   CommentAuthor,
-} from 'semantic-ui-react'; // Import Semantic UI components
-import ReplyComponent from './ReplyComponent';
-import AddReply from './AddReply';
-import { fetchRepliesByCommentId } from '../Services/api';
+} from "semantic-ui-react";
+import ReplyComponent from "./ReplyComponent";
+import AddReply from "./AddReply";
+import { fetchRepliesByCommentId } from "../Services/api";
 
-const CommentComponent = ({ id, postId, author, time, text }) => {
+const CommentComponent = ({ id, postId, author, createdtime, text }) => {
   const [isReplyVisible, setIsReplyVisible] = useState(false);
   const [replies, setReplies] = useState([]);
+  const [displayedReplies, setDisplayedReplies] = useState(5); // Initially show 5 replies
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Formatting the timestamp using moment.js
-  const formattedTime = moment(time).format("DD/MM/YYYY, hh:mm A");
+  // const formattedTime = useMemo(()=>moment(time).format("DD/MM/YYYY, hh:mm A"));
 
-  // Toggle the visibility of the reply field
   const toggleReplyVisibility = () => {
     setIsReplyVisible(!isReplyVisible);
   };
 
-  // Fetch replies for the comment
   const fetchReplies = async () => {
     try {
       setLoading(true);
       const response = await fetchRepliesByCommentId(id);
       if (response.status === 200 || response.status === 201) {
-        const sortedReplies = response.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setReplies(sortedReplies);
+        
+        setReplies(response.data);
       }
     } catch (err) {
-      setError('Failed to load replies');
+      setError("Failed to load replies");
     } finally {
       setLoading(false);
     }
   };
 
-  // Initial fetch of replies
   useEffect(() => {
     fetchReplies();
   }, [id]);
@@ -54,14 +51,26 @@ const CommentComponent = ({ id, postId, author, time, text }) => {
     fetchReplies(); // Refresh replies dynamically after a new one is posted
   };
 
+  const handleShowMore = () => {
+    setDisplayedReplies((prev) => Math.min(prev + 4, replies.length)); // Show 4 more replies
+  };
+
+  const handleShowLess = () => {
+    setDisplayedReplies((prev) => Math.max(prev - 4, 5)); // Show 4 fewer replies, minimum 5
+  };
+
+  const handleShowAll = () => {
+    setDisplayedReplies(replies.length); // Show all replies
+  };
+
   return (
     <CommentGroup>
-      <Comment style={{ marginTop: '25px' }}>
+      <Comment style={{ marginTop: "25px" }}>
         <CommentAvatar src="https://react.semantic-ui.com/images/avatar/small/elliot.jpg" />
         <CommentContent>
           <CommentAuthor as="a">{author}</CommentAuthor>
           <CommentMetadata>
-            <div>{formattedTime}</div>
+            <div>{createdtime}</div>
           </CommentMetadata>
           <CommentText>
             <p>{text}</p>
@@ -69,10 +78,10 @@ const CommentComponent = ({ id, postId, author, time, text }) => {
           <CommentActions>
             <Button
               style={{
-                backgroundColor: 'transparent', // Transparent background
-                boxShadow: 'none', // Remove any box shadow
-                color: '#4183c4', // Optional: Match Semantic UI link color for text
-                padding: '0', // Optional: Adjust padding for minimalistic look
+                backgroundColor: "transparent",
+                boxShadow: "none",
+                color: "#4183c4",
+                padding: "0",
               }}
               size="tiny"
               onClick={toggleReplyVisibility}
@@ -82,20 +91,40 @@ const CommentComponent = ({ id, postId, author, time, text }) => {
           </CommentActions>
         </CommentContent>
 
-        {/* Nested replies */}
-        {replies.length > 0 &&
-          replies.map((reply) => (
-            <ReplyComponent
-              key={reply._id}
-              id={reply._id}
-              userId={reply.userId}
-              postId={postId}
-              time={reply.updatedTime}
-              content={reply.content}
-              commentId={id}
-              onReplyPosted={handleReplyPosted}
-            />
-          ))}
+        {/* Render replies with pagination */}
+        {replies.slice(0, displayedReplies).map((reply) => (
+          <ReplyComponent
+            key={reply._id}
+            id={reply._id}
+            userId={reply.userId}
+            postId={postId}
+            createdtime={moment(reply.createdAt).format("DD/MM/YYYY, hh:mm A")}
+            content={reply.content}
+            commentId={id}
+            onReplyPosted={handleReplyPosted}
+          />
+        ))}
+
+        {/* Buttons for Show More, Show Less, Show All */}
+        {replies.length > 5 && (
+          <div style={{ marginTop: "10px" }}>
+            {displayedReplies < replies.length && (
+              <Button size="small" onClick={handleShowMore}>
+                Show More
+              </Button>
+            )}
+            {displayedReplies > 5 && (
+              <Button size="small" onClick={handleShowLess}>
+                Show Less
+              </Button>
+            )}
+            {displayedReplies !== replies.length && (
+              <Button size="small" onClick={handleShowAll}>
+                Show All
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Conditionally render AddReply */}
         {isReplyVisible && (
@@ -103,7 +132,7 @@ const CommentComponent = ({ id, postId, author, time, text }) => {
             userId={author}
             postId={postId}
             commentId={id}
-            onReplyPosted={handleReplyPosted} // Pass the callback to refresh replies
+            onReplyPosted={handleReplyPosted}
           />
         )}
       </Comment>
