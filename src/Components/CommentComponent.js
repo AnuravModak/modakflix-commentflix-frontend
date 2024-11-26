@@ -14,8 +14,9 @@ import {
 import AddReply from './AddReply';
 // import "../StyleSheets/CSS/App.css";
 import ReplyComponent from './ReplyComponent';
+import AddComment from './AddComment';
 
-const CommentComponent = ({ id, author, time, text, replies, onEdit, onReply, onDelete }) => {
+const CommentComponent = ({ id, postId, author, time, text, replies }) => {
   // State to manage visibility of AddReply field
   const [isReplyVisible, setIsReplyVisible] = useState(false);
 
@@ -28,6 +29,8 @@ const CommentComponent = ({ id, author, time, text, replies, onEdit, onReply, on
   };
 
   return (
+    
+    
     <CommentGroup>
       <Comment style={{ marginTop: '25px' }}>
         <CommentAvatar src='https://react.semantic-ui.com/images/avatar/small/elliot.jpg' />
@@ -56,25 +59,26 @@ const CommentComponent = ({ id, author, time, text, replies, onEdit, onReply, on
 
         </CommentContent>
 
+
         {/* Nested replies */}
         {Array.isArray(replies) && replies.length > 0 && (
           replies.map((reply) => (
             <ReplyComponent
-              key={reply._id} // Make sure to use a unique key for each reply
               id={reply._id}
               userId={reply.userId}
+              postId={postId}
               time={reply.updatedTime}
               content={reply.content}
-              isReplyVisible={isReplyVisible}
-              toggleReplyVisibility={toggleReplyVisibility}
+              commentId={id}
             />
           ))
         )}
 
         {/* Conditionally render AddReply */}
-        {isReplyVisible && <AddReply userId={author}/>}
+        {isReplyVisible && <AddReply userId={author} postId={postId} commentId={id}/>}
       </Comment>
     </CommentGroup>
+
   );
 };
 
