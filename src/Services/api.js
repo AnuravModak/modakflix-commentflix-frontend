@@ -15,3 +15,4 @@ export const deleteComment =(id) => api.delete(`/comments/${id}`);
 export const addReply= (commentId,reply) => api.post(`/comments/${commentId}/reply`,reply);
 export const updateReply= (commentId,replyId,updatedReply) => api.put(`/comments/${commentId}/reply/${replyId}`,updatedReply);
 export const deleteReply= (commentId,replyId)=>api.delete(`/comments/${commentId}/reply/${replyId}`);
+export const updateIsPinned= (commentId) => api.post(`/comments/${commentId}/pinned`);

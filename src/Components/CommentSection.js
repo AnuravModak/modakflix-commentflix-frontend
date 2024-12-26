@@ -10,6 +10,7 @@ const CommentSection = ({ postId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [visibleCount, setVisibleCount] = useState(7);
+  const [pinnedCommentId, setPinnedCommentId] = useState(null);
 
   const fetchComments = async () => {
     try {
@@ -24,10 +25,14 @@ const CommentSection = ({ postId }) => {
 
       const data = response.data.map((comment) => ({
         ...comment,
-        formattedTime: moment(comment.createdAt).format("DD MMM YYYY, hh:mm A"), // Pre-format time
+        formattedTime: moment(comment.createdAt).format("DD MMM YYYY, hh:mm A"),
       }));
 
       setComments(data);
+
+      // Automatically set the pinned comment if any
+      const pinned = data.find((comment) => comment.isPinned);
+      setPinnedCommentId(pinned ? pinned.id : null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -51,11 +56,18 @@ const CommentSection = ({ postId }) => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Determine the latest comment time or use the current time
-  const latestTime =
-    comments.length > 0
-      ? comments[0].formattedTime // The most recent comment is the first in the sorted list
-      : moment().format("DD MMM YYYY, hh:mm A");
+  const handlePinComment = (commentId) => {
+    setComments((prevComments) =>
+      prevComments.map((comment) => ({
+        ...comment,
+        isPinned: comment.id === commentId ? !comment.isPinned : false,
+      }))
+    );
+    setPinnedCommentId(commentId === pinnedCommentId ? null : commentId);
+  };
+
+  const pinnedComment = comments.find((comment) => comment.id === pinnedCommentId);
+  const otherComments = comments.filter((comment) => comment.id !== pinnedCommentId);
 
   return (
     <div>
@@ -72,10 +84,7 @@ const CommentSection = ({ postId }) => {
       )}
 
       {!loading && !error && (
-        <AddComment
-          postId={postId}
-          onCommentPosted={handleCommentPosted}
-        />
+        <AddComment postId={postId} onCommentPosted={handleCommentPosted} />
       )}
 
       {!loading && !error && comments.length > 0 && (
@@ -83,19 +92,32 @@ const CommentSection = ({ postId }) => {
           <Header as="h3" dividing>
             Previous Comments
           </Header>
-          {comments.slice(0, visibleCount).map((comment) => (
+          {pinnedComment && (
+            <CommentComponent
+              key={pinnedComment.id}
+              id={pinnedComment.id}
+              postId={postId}
+              author={pinnedComment.userId}
+              createdtime={pinnedComment.formattedTime}
+              text={pinnedComment.content}
+              isPinned={true}
+              onPinComment={handlePinComment}
+            />
+          )}
+          {otherComments.slice(0, visibleCount).map((comment) => (
             <CommentComponent
               key={comment.id}
               id={comment.id}
               postId={postId}
               author={comment.userId}
-              createdtime={latestTime} // Pass preformatted time
+              createdtime={comment.formattedTime}
               text={comment.content}
-              replies={comment.replies}
+              isPinned={comment.isPinned}
+              onPinComment={handlePinComment}
             />
           ))}
 
-          {visibleCount < comments.length && (
+          {visibleCount < otherComments.length && (
             <Button
               onClick={handleLoadMore}
               primary
