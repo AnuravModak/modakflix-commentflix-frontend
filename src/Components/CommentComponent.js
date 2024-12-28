@@ -14,7 +14,7 @@ import {
 } from "semantic-ui-react";
 import ReplyComponent from "./ReplyComponent";
 import AddReply from "./AddReply";
-import { fetchRepliesByCommentId, updateIsPinned } from "../Services/api";
+import { fetchCommentById, fetchRepliesByCommentId,updateIsPinned } from "../Services/api";
 
 const CommentComponent = ({
   id,
@@ -32,11 +32,6 @@ const CommentComponent = ({
   const [error, setError] = useState(null);
   const [localIsPinned, setLocalIsPinned] = useState(isPinned);
   const [isPinLoading, setIsPinLoading] = useState(false);
-
-  // Synchronize local state with `isPinned` prop
-  useEffect(() => {
-    setLocalIsPinned(isPinned);
-  }, [isPinned]);
 
   const toggleReplyVisibility = () => {
     setIsReplyVisible(!isReplyVisible);
@@ -56,8 +51,33 @@ const CommentComponent = ({
     }
   };
 
+
+  useEffect(() => {
+    const fetchPinnedStatus = async () => {
+      try {
+        const response = await fetchCommentById(id); // Assuming there's an endpoint to fetch the pinned status
+        if (response.status === 200 && response.data) {
+          console.log("From new use-effect ", response.data,response.data.pinned);
+          setLocalIsPinned(response.data.pinned); // Ensure a fallback
+        } else {
+          throw new Error("Failed to fetch pinned status");
+        }
+      } catch (error) {
+        console.error("Error fetching pinned status:", error);
+        setLocalIsPinned(false); // Default to unpinned on error
+      }
+    };
+  
+    fetchPinnedStatus();
+  }, [id]); // Fetch pinned status when the comment ID changes
+
+  useEffect(() => {
+    console.log("localIsPinned changed:", localIsPinned);
+  }, [localIsPinned]);
+
   useEffect(() => {
     fetchReplies();
+    
   }, [id]);
 
   const handleReplyPosted = () => {
@@ -78,21 +98,31 @@ const CommentComponent = ({
 
   const handlePinClick = async () => {
     try {
-      setIsPinLoading(true);
-      const response = await updateIsPinned(id);
-      if (response.status === 200 || response.status === 201) {
-        setLocalIsPinned(!localIsPinned); // Toggle locally
-        onPinComment(id); // Notify parent
+      setIsPinLoading(true); // Start loading state
+  
+      const response = await updateIsPinned(id); // API call
+      console.log("API Response:", response);
+  
+      // Validate response
+      if (response.status === 200 && response.data) {
+        console.log("-------------------------------------------------------");
+
+        const newPinnedStatus = response.data.pinned; // Get updated pinned status from API
+        console.log("pinned status from db", newPinnedStatus);
+        setLocalIsPinned(newPinnedStatus); // Update local state based on response
+        onPinComment(id); // Notify parent about the change
+        console.log("-------------------------------------------------------");
       } else {
-        throw new Error("Unexpected response from server");
+        throw new Error("Unexpected response format or status code");
       }
     } catch (err) {
-      console.error("Failed to update pinned status:", err.message);
-      setError("Failed to update the pinned status. Please try again.");
+      console.error("Failed to update pinned status:", err);
+      setError("Failed to update the pinned status. Please try again."); // Set user-facing error message
     } finally {
-      setIsPinLoading(false);
+      setIsPinLoading(false); // End loading state
     }
   };
+  
 
   return (
     <CommentGroup>
